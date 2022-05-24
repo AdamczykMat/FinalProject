@@ -21,14 +21,13 @@ class Button : public sf::Sprite
     }
 
   private:
-
  };
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "My window");
     sf::Clock clock;
 
-
+    //menu textures
     sf::Texture Start_tex;
     sf::Texture Exit_tex;
     sf::Texture BG_tex;
@@ -50,8 +49,25 @@ int main() {
     BG.setTextureRect(sf::IntRect(0, 0, window.getSize().x, window.getSize().y));
 
 
-
+    //in-game variables
     bool game_started = false;
+    float timer = 60;
+    int points = 0;
+
+    //game text
+    sf::Font font;
+    font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+
+    sf::Text timer_txt(std::to_string(timer),font);
+    timer_txt.setCharacterSize(30);
+    timer_txt.setFillColor(sf::Color::Red);
+    timer_txt.setPosition(5.0,5.0);
+
+    sf::Text points_txt(std::to_string(points),font);
+    points_txt.setCharacterSize(30);
+    points_txt.setFillColor(sf::Color::Cyan);
+    points_txt.setPosition(window.getSize().x - 20,5.0);
+
 
     while (window.isOpen()) {
        sf::Time elapsed = clock.restart();
@@ -82,7 +98,13 @@ int main() {
        }
        else//actual game
        {
-
+        timer -= elapsed.asSeconds();
+        timer_txt.setString(std::to_string(timer));
+        if(timer < 0)
+        {
+            //game ended screen
+        }
+        //continue
        }
 
 
@@ -95,6 +117,10 @@ int main() {
        {
            window.draw(StartB);
            window.draw(ExitB);
+       }
+       else{
+           window.draw(timer_txt);
+           window.draw(points_txt);
        }
 
        window.display();
