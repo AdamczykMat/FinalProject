@@ -23,17 +23,47 @@ class Button : public sf::Sprite
   private:
  };
 
+class Bow : public sf::Sprite
+ {
+  public:
+    Bow( const sf::Texture& texture,const sf::Vector2u &w_size): sf::Sprite(texture)
+    {
+        setOrigin(60.0,30.0);
+        setPosition(w_size.x/2, w_size.y-50);
+        angle = getRotation();
+    }
+
+
+    void rotate_(const sf::Time &elapsed){
+        float dt = elapsed.asSeconds();
+
+        if(angle > 90 && angle < 100)
+            rotation_speed *= -1;
+        else if(angle < 270 && angle > 260)
+            rotation_speed *= -1;
+
+        rotate(rotation_speed*dt);
+        angle = getRotation();
+    }
+
+  private:
+    float angle;
+    int rotation_speed=100;
+ };
+
 int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "My window");
     sf::Clock clock;
 
-    //menu textures
+    //textures
     sf::Texture Start_tex;
     sf::Texture Exit_tex;
     sf::Texture BG_tex;
+    sf::Texture Bow_tex;
     if(!Start_tex.loadFromFile("Start.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
     if(!Exit_tex.loadFromFile("Exit.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
     if(!BG_tex.loadFromFile("BG.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
+    if(!Bow_tex.loadFromFile("Bow.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
 
     Button StartB;
     StartB.setPosition( (window.getSize().x)/2 - 150.0,200.0);
@@ -47,6 +77,10 @@ int main() {
     BG_tex.setRepeated(true);
     BG.setTexture(BG_tex);
     BG.setTextureRect(sf::IntRect(0, 0, window.getSize().x, window.getSize().y));
+
+    //game objects
+    Bow bow(Bow_tex , window.getSize());
+
 
 
     //in-game variables
@@ -62,12 +96,15 @@ int main() {
     timer_txt.setCharacterSize(30);
     timer_txt.setFillColor(sf::Color::Red);
     timer_txt.setPosition(5.0,5.0);
+    timer_txt.setOutlineColor(sf::Color::Black);
+    timer_txt.setOutlineThickness(1);
 
     sf::Text points_txt(std::to_string(points),font);
     points_txt.setCharacterSize(30);
     points_txt.setFillColor(sf::Color::Cyan);
     points_txt.setPosition(window.getSize().x - 20,5.0);
-
+    points_txt.setOutlineColor(sf::Color::Black);
+    points_txt.setOutlineThickness(1);
 
     while (window.isOpen()) {
        sf::Time elapsed = clock.restart();
@@ -104,9 +141,10 @@ int main() {
         {
             //game ended screen
         }
-        //continue
-       }
 
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) std::cerr << "Arrow" << std::endl;
+        bow.rotate_(elapsed);
+       }
 
 
 
@@ -121,6 +159,7 @@ int main() {
        else{
            window.draw(timer_txt);
            window.draw(points_txt);
+           window.draw(bow);
        }
 
        window.display();
