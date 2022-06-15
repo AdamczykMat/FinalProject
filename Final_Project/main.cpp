@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
@@ -51,6 +52,76 @@ class Bow : public sf::Sprite
     int rotation_speed=100;
  };
 
+class Arrow : public sf::Sprite
+ {
+  public:
+    Arrow( const sf::Texture& texture,const sf::Vector2u &w_size): sf::Sprite(texture)
+    {
+        setOrigin(15.0,60.0);
+        setPosition(w_size.x/2, w_size.y-50);
+        angle = getRotation();
+    }
+
+    void fire()
+    {
+        std::cerr << "Arrow" << std::endl;
+        is_fired = true;
+    }
+
+
+    void move_(const sf::Time &elapsed ,const sf::Vector2u &w_size, const sf::FloatRect &target_bounds){
+
+        float dt = elapsed.asSeconds();
+        if(!is_fired)
+        {
+            // same rotation as bow
+            if(angle > 90 && angle < 100)
+                rotation_speed *= -1;
+            else if(angle < 270 && angle > 260)
+                rotation_speed *= -1;
+
+            rotate(rotation_speed*dt);
+            angle = getRotation();
+        }
+        else
+        {
+            sf::FloatRect bounds = getGlobalBounds();
+
+            if(bounds.left < 0 || bounds.left + bounds.width > w_size.x || bounds.top < 0 || hit_target(target_bounds))
+            {
+            setPosition(w_size.x/2, w_size.y-50);
+            is_fired = false;
+            }
+
+            if(is_fired)
+            {
+                if(angle < 180)
+                    move(std::abs((1/tan(angle))*xy_speed*dt),std::abs(tan(angle)*xy_speed*dt)*-1); //right side fire
+                else
+                    move(std::abs((1/tan(angle))*xy_speed*dt)*-1,std::abs(tan(angle)*xy_speed*dt)*-1); //left side fire
+            }
+
+        }
+    }
+
+    bool hit_target(const sf::FloatRect &target_bounds)
+    {
+        sf::FloatRect bounds = getGlobalBounds();
+
+        if(bounds.top > target_bounds.top && bounds.top < target_bounds.top + target_bounds.height && bounds.left > target_bounds.left && bounds.left < target_bounds.left + target_bounds.width)
+            return true;
+        return false;
+    }
+
+  private:
+
+    float angle;
+    int rotation_speed=100;
+    int xy_speed = 500;
+    bool is_fired = 0;
+ };
+
+
 int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "My window");
     sf::Clock clock;
@@ -60,10 +131,13 @@ int main() {
     sf::Texture Exit_tex;
     sf::Texture BG_tex;
     sf::Texture Bow_tex;
-    if(!Start_tex.loadFromFile("Start.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
-    if(!Exit_tex.loadFromFile("Exit.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
-    if(!BG_tex.loadFromFile("BG.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
-    if(!Bow_tex.loadFromFile("Bow.png")) {std::cerr << "Could not load texture" << std::endl; return 0;}
+    sf::Texture Arrow_tex;
+    if(!Start_tex.loadFromFile("Start.png") ||
+       !Exit_tex.loadFromFile("Exit.png") ||
+       !BG_tex.loadFromFile("BG.png") ||
+       !Bow_tex.loadFromFile("Bow.png") ||
+       !Arrow_tex.loadFromFile("Arrow.png"))
+    {std::cerr << "Could not load texture" << std::endl; return 0;}
 
     Button StartB;
     StartB.setPosition( (window.getSize().x)/2 - 150.0,200.0);
@@ -80,8 +154,13 @@ int main() {
 
     //game objects
     Bow bow(Bow_tex , window.getSize());
+    Arrow arrow(Arrow_tex , window.getSize());
 
-
+    sf::CircleShape Target(25.0);
+    Target.setPosition(rand() % window.getSize().x - Target.getGlobalBounds().height ,rand() % window.getSize().y/2);
+    Target.setFillColor(sf::Color(rand()%255, rand()%255, rand()%255));
+    Target.setOutlineColor(sf::Color::Black);
+    Target.setOutlineThickness(2);
 
     //in-game variables
     bool game_started = false;
@@ -106,6 +185,13 @@ int main() {
     points_txt.setOutlineColor(sf::Color::Black);
     points_txt.setOutlineThickness(1);
 
+    sf::Text restart_text("Press 'R' to restart",font);
+    restart_text.setCharacterSize(50);
+    restart_text.setFillColor(sf::Color::Red);
+    restart_text.setPosition(200,window.getSize().y /2);
+    restart_text.setOutlineColor(sf::Color::Black);
+    restart_text.setOutlineThickness(1);
+
     while (window.isOpen()) {
        sf::Time elapsed = clock.restart();
 
@@ -117,6 +203,8 @@ int main() {
 
        if(!game_started)//menu
        {
+
+
            sf::Vector2i mouse_pos;
            if(event.type == sf::Event::MouseButtonPressed)
            {
@@ -135,17 +223,51 @@ int main() {
        }
        else//actual game
        {
+
+
+
         timer -= elapsed.asSeconds();
         timer_txt.setString(std::to_string(timer));
+
+        points_txt.setString(std::to_string(points));
+
+
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) arrow.fire();
+        bow.rotate_(elapsed);
+        arrow.move_(elapsed,window.getSize(),Target.getGlobalBounds());
+
+        if(arrow.hit_target(Target.getGlobalBounds()))
+        {
+            points++;
+            Target.setPosition(rand() % window.getSize().x - Target.getGlobalBounds().height ,rand() % window.getSize().y/2);
+            Target.setFillColor(sf::Color(rand()%255, rand()%255, rand()%255));
+        }
+
+
+
         if(timer < 0)
         {
             //game ended screen
+
+            window.clear(sf::Color::Black);
+            window.draw(BG);
+            window.draw(points_txt);
+            window.draw(restart_text);
+
+            window.display();
+            while(true)
+            {
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+                {
+                    bow.setRotation(180);
+                    arrow.setRotation(180);
+                    timer = 60.0;
+                    points = 0;
+                    break;
+                }
+            }
         }
-
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) std::cerr << "Arrow" << std::endl;
-        bow.rotate_(elapsed);
        }
-
 
 
        window.clear(sf::Color::Black);
@@ -160,6 +282,8 @@ int main() {
            window.draw(timer_txt);
            window.draw(points_txt);
            window.draw(bow);
+           window.draw(arrow);
+           window.draw(Target);
        }
 
        window.display();
