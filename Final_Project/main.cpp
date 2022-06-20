@@ -51,7 +51,7 @@ class Bow : public sf::Sprite
 
   private:
     float angle;
-    int rotation_speed=100;
+    int rotation_speed=150;
  };
 
 class Arrow : public sf::Sprite
@@ -124,8 +124,8 @@ class Arrow : public sf::Sprite
   private:
 
     float angle;
-    int rotation_speed=100;
-    int xy_speed = 500;
+    int rotation_speed=150;
+    int xy_speed = 750;
     bool is_fired = 0;
  };
 
@@ -165,7 +165,7 @@ int main() {
     Arrow arrow(Arrow_tex , window.getSize());
 
     sf::CircleShape Target(25.0);
-    Target.setPosition(rand() % window.getSize().x - Target.getGlobalBounds().height ,rand() % window.getSize().y/2);
+    Target.setPosition(rand() % window.getSize().x - Target.getGlobalBounds().height ,rand() % window.getSize().y/3);
     Target.setFillColor(sf::Color(rand()%255, rand()%255, rand()%255));
     Target.setOutlineColor(sf::Color::Black);
     Target.setOutlineThickness(2);
