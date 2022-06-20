@@ -47,6 +47,8 @@ class Bow : public sf::Sprite
         angle = getRotation();
     }
 
+    int getRotationSpeed(){return rotation_speed;}
+
   private:
     float angle;
     int rotation_speed=100;
@@ -62,16 +64,14 @@ class Arrow : public sf::Sprite
         angle = getRotation();
     }
 
-    void fire()
-    {
-        std::cerr << "Arrow" << std::endl;
-        is_fired = true;
-    }
+    void fire(){is_fired = true;}
 
 
-    void move_(const sf::Time &elapsed ,const sf::Vector2u &w_size, const sf::FloatRect &target_bounds){
+    void move_(const sf::Time &elapsed ,const sf::Vector2u &w_size, const sf::FloatRect &target_bounds,const sf::Vector2f &bow_rot){
 
         float dt = elapsed.asSeconds();
+
+
         if(!is_fired)
         {
             // same rotation as bow
@@ -90,16 +90,24 @@ class Arrow : public sf::Sprite
             if(bounds.left < 0 || bounds.left + bounds.width > w_size.x || bounds.top < 0 || hit_target(target_bounds))
             {
             setPosition(w_size.x/2, w_size.y-50);
+            setRotation(bow_rot.x);
+            rotation_speed = bow_rot.y;
             is_fired = false;
+            angle = getRotation();
             }
 
             if(is_fired)
             {
+                float v = xy_speed*dt; // movement vector
+                float angle_in_rad = 2*3.14 * (std::abs(90-angle) / 360);
+
+
                 if(angle < 180)
-                    move(std::abs((1/tan(angle))*xy_speed*dt),std::abs(tan(angle)*xy_speed*dt)*-1); //right side fire
+                    move(std::abs(cos(angle_in_rad)*v),std::abs(sin(angle_in_rad)*v)*-1); //right side fire
                 else
-                    move(std::abs((1/tan(angle))*xy_speed*dt)*-1,std::abs(tan(angle)*xy_speed*dt)*-1); //left side fire
+                    move(std::abs(cos(angle_in_rad)*v)*-1,std::abs(sin(angle_in_rad)*v)*-1); //left side fire
             }
+
 
         }
     }
@@ -169,7 +177,7 @@ int main() {
 
     //game text
     sf::Font font;
-    font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+    font.loadFromFile("arial.ttf");
 
     sf::Text timer_txt(std::to_string(timer),font);
     timer_txt.setCharacterSize(30);
@@ -234,16 +242,14 @@ int main() {
 
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) arrow.fire();
         bow.rotate_(elapsed);
-        arrow.move_(elapsed,window.getSize(),Target.getGlobalBounds());
+        arrow.move_(elapsed,window.getSize(),Target.getGlobalBounds(),sf::Vector2f(bow.getRotation(),bow.getRotationSpeed()));
 
         if(arrow.hit_target(Target.getGlobalBounds()))
         {
             points++;
-            Target.setPosition(rand() % window.getSize().x - Target.getGlobalBounds().height ,rand() % window.getSize().y/2);
+            Target.setPosition(rand() % window.getSize().x ,rand() % window.getSize().y/2);
             Target.setFillColor(sf::Color(rand()%255, rand()%255, rand()%255));
         }
-
-
 
         if(timer < 0)
         {
@@ -279,11 +285,12 @@ int main() {
            window.draw(ExitB);
        }
        else{
-           window.draw(timer_txt);
-           window.draw(points_txt);
+
            window.draw(bow);
            window.draw(arrow);
            window.draw(Target);
+           window.draw(timer_txt);
+           window.draw(points_txt);
        }
 
        window.display();
